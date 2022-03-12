@@ -1,0 +1,84 @@
+version: '3.6'
+
+services:
+
+  pimcore:
+    image: dpfaffenbauer/pimcore:PHP7.2-apache
+    networks:
+      - pimcore-sandbox
+    volumes:
+        - ./pimcore:/var/www/html
+    ports:
+      - "5000:80"
+      - "5001:443"
+    environment:
+      - PHP_IDE_CONFIG="serverName=localhost"
+      - MYSQL_ROOT_PASSWORD=ROOT
+      - MYSQL_DATABASE=pimcore
+      - MYSQL_USER=pimcore
+      - MYSQL_PASSWORD=pimcore
+      - MYSQL_HOST=db
+  
+  pimcore-debug:
+    image: dpfaffenbauer/pimcore:PHP7.2-apache-debug
+    networks:
+      - pimcore-sandbox
+    volumes:
+        - ./pimcore:/var/www/html
+    ports:
+      - "5006:80"
+    depends_on:
+      - db
+      - redis
+    environment:
+      - PHP_IDE_CONFIG="serverName=localhost"
+      - MYSQL_ROOT_PASSWORD=ROOT
+      - MYSQL_DATABASE=pimcore
+      - MYSQL_USER=pimcore
+      - MYSQL_PASSWORD=pimcore
+      - MYSQL_HOST=db
+
+  db:
+    image: mariadb:10.6.4
+    networks:
+      - pimcore-sandbox
+    working_dir: /application
+    command: [
+      mysqld,
+      --character-set-server=utf8mb4,
+      --collation-server=utf8mb4_unicode_ci,
+      --innodb-file-format=Barracuda,
+      --innodb-large-prefix=ON,
+      --innodb-file-per-table=1
+      ]
+    volumes:
+      - ./db:/var/lib/mysql
+    environment:
+      - MYSQL_ROOT_PASSWORD=ROOT
+      - MYSQL_DATABASE=pimcore
+      - MYSQL_USER=pimcore
+      - MYSQL_PASSWORD=pimcore
+      - MYSQL_HOST=db
+
+  redis:
+    image: redis:alpine
+    networks:
+        - pimcore-sandbox
+
+  adminer:
+    image: adminer
+    networks:
+      - pimcore-sandbox
+    deploy:
+      restart_policy:
+        condition: on-failure
+    ports:
+      - 5002:8080
+
+networks:
+  pimcore-sandbox:
+    driver: overlay
+
+volumes:
+  db:
+  pimcore:
